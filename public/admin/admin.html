@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Dashboard</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f9f9f9;
+      color: #333;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-block-end: 40px;
+    }
+
+    .container {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 40px;
+      flex-direction: row;
+      align-items: center;
+    }
+
+    .appointments-table {
+      inline-size: 100%;
+      max-inline-size: 600px;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+      padding: 20px;
+    }
+
+    .appointments-table h2 {
+      text-align: center;
+      margin-block-end: 20px;
+    }
+
+    table {
+      inline-size: 100%;
+      border-collapse: collapse;
+    }
+
+    thead {
+      background-color: #f0f0f0;
+    }
+
+    th, td {
+      padding: 10px;
+      border: 1px solid #ccc;
+      text-align: start;
+      font-size: 14px;
+    }
+
+    tbody tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+
+    .no-data {
+      text-align: center;
+      padding: 10px;
+      font-style: italic;
+      color: #888;
+    }
+
+    .logout-btn {
+  display: block;
+  background-color: #e74c3c;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 5px;
+  text-decoration: none;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  text-align: center;
+  margin: 40px auto 0; /* Correct margin: 40px top, auto left and right */
+  inline-size: fit-content; /* Makes button shrink to fit text */
+}
+
+  </style>
+</head>
+<body>
+  <h1>Admin Dashboard</h1>
+
+  <div class="container">
+    <!-- Doctor Appointments Table -->
+    <div class="appointments-table">
+      <h2>Doctor Appointments</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Age</th>
+            <th>Phone</th>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Doctor name</th>
+            <th>History</th>
+          </tr>
+        </thead>
+        <tbody id="doctorAppointmentsBody">
+          <tr><td colspan="6" class="no-data">Loading...</td></tr>
+        </tbody>
+      </table>
+     
+    </div>
+
+    <!-- Vaccine Appointments Table -->
+    <div class="appointments-table">
+      <h2>Vaccine Appointments</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Age</th>
+            <th>Phone</th>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Vaccines</th>
+          </tr>
+        </thead>
+        <tbody id="vaccineAppointmentsBody">
+          <tr><td colspan="6" class="no-data">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <a href="/logout" class="logout-btn">Logout</a>
+  <script>
+
+
+// Fetch doctor appointments
+fetch('/api/doctorAppointments')  // Use the correct endpoint
+  .then(response => response.json())
+  .then(data => {
+    const tbody = document.getElementById('doctorAppointmentsBody');
+    tbody.innerHTML = '';
+
+    if (data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" class="no-data">No doctor appointments available.</td></tr>`;
+    } else {
+      data.forEach(app => {
+        const row = `
+          <tr>
+            <td>${app.name}</td>
+            <td>${app.age}</td>
+            <td>${app.phone}</td>
+            <td>${app.date}</td>
+            <td>${app.time}</td>
+            <td>${app.doctorName}</td>
+            <td>${app.history || '-'}</td>
+          </tr>
+        `;
+        tbody.insertAdjacentHTML('beforeend', row);
+      });
+    }
+  })
+  .catch(error => {
+    console.error('Error fetching doctor appointments:', error);
+    document.getElementById('doctorAppointmentsBody').innerHTML =
+      `<tr><td colspan="6" class="no-data">Failed to load data.</td></tr>`;
+  });
+
+// Fetch vaccine appointments
+fetch('/api/vaccineAppointments')  // Corrected endpoint for vaccine appointments
+  .then(response => response.json())
+  .then(data => {
+    const tbody = document.getElementById('vaccineAppointmentsBody');
+    tbody.innerHTML = '';
+
+    if (data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" class="no-data">No vaccine appointments available.</td></tr>`;
+    } else {
+      data.forEach(app => {
+        let vaccinesText = '';
+        if (typeof app.vaccines === 'string') {
+          const matches = [...app.vaccines.matchAll(/<li>(.*?)<\/li>/g)];
+          vaccinesText = matches.map(m => m[1]).join(', ');
+        } else {
+          vaccinesText = app.vaccines.join(', ');
+        }
+
+        const row = `
+          <tr>
+            <td>${app.name}</td>
+            <td>${app.age}</td>
+            <td>${app.phone}</td>
+            <td>${app.appointmentDate}</td>
+            <td>${app.appointmentTime}</td>
+            <td>${vaccinesText}</td>
+          </tr>
+        `;
+        tbody.insertAdjacentHTML('beforeend', row);
+      });
+    }
+  })
+  .catch(error => {
+    console.error('Error fetching vaccine appointments:', error);
+    document.getElementById('vaccineAppointmentsBody').innerHTML =
+      `<tr><td colspan="6" class="no-data">Failed to load data.</td></tr>`;
+  });
+  document.querySelector('.logout-btn')?.addEventListener('click', () => {
+  localStorage.removeItem('isAdmin');
+});
+  </script>
+</body>
+</html>

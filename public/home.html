@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Health Care Portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <style>
+    :root {
+      --blue-light: #e3f2fd;
+      --blue-medium: #4fc3f7;
+      --blue-dark: #0288d1;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      background: var(--blue-light);
+      overflow-x: hidden;
+    }
+
+    header {
+      background: linear-gradient(135deg, #81d4fa, #29b6f6);
+      padding: 60px 20px;
+      text-align: center;
+      color: white;
+      animation: fadeInDown 1s ease-out;
+    }
+
+    header h1 {
+      font-size: 3rem;
+      margin-block-end: 10px;
+    }
+
+    header p {
+      font-size: 1.2rem;
+    }
+
+    .nav {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 20px;
+      margin: 40px 0;
+      animation: fadeInUp 1.2s ease;
+    }
+
+    .nav a {
+      padding: 15px 30px;
+      border-radius: 30px;
+      background: var(--blue-medium);
+      color: white;
+      text-decoration: none;
+      font-weight: 500;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+      transition: all 0.3s ease-in-out;
+    }
+
+    .nav a:hover {
+      background: var(--blue-dark);
+      transform: translateY(-3px) scale(1.02);
+    }
+
+    #authModal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+
+    #authModal form {
+      background: white;
+      padding: 30px;
+      border-radius: 15px;
+      inline-size: 90%;
+      max-inline-size: 400px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+      animation: zoomIn 0.4s ease;
+    }
+
+    #authModal h3 {
+      text-align: center;
+      color: var(--blue-dark);
+      margin-block-end: 20px;
+    }
+
+    #authModal input {
+      inline-size: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+
+    #authModal button {
+      inline-size: 100%;
+      padding: 12px;
+      background: var(--blue-dark);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      margin-block-start: 10px;
+    }
+
+    #authModal span {
+      color: var(--blue-dark);
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    .about-section {
+      background: #e8f5fe;
+      padding: 60px 20px;
+      text-align: center;
+      animation: fadeIn 1s ease-in-out;
+    }
+
+    .about-container {
+      max-inline-size: 800px;
+      margin: auto;
+      color: #033f63;
+    }
+
+    .about-container h2 {
+      font-size: 2.5rem;
+      margin-block-end: 25px;
+      color: var(--blue-dark);
+      font-weight: 700;
+    }
+
+    .about-container p {
+      font-size: 1.1rem;
+      line-height: 1.7;
+      margin-block-end: 20px;
+    }
+
+    .about-container ul {
+      text-align: start;
+      margin: 0 auto 20px;
+      max-inline-size: 600px;
+      padding-inline-start: 0;
+      list-style: none;
+    }
+
+    .about-container li {
+      background: #ffffff;
+      margin: 10px 0;
+      padding: 12px 20px;
+      border-radius: 8px;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+      font-size: 1rem;
+    }
+
+    .fade-in {
+      opacity: 0;
+      animation: fadeInUp 1s forwards;
+    }
+
+    .delay-1 { animation-delay: 0.4s; }
+    .delay-2 { animation-delay: 0.8s; }
+
+    footer {
+      background: #b3e5fc;
+      padding: 30px 20px;
+      text-align: center;
+      color: #333;
+      animation: fadeInUp 1.5s ease;
+    }
+
+    footer h4 {
+      margin-block-end: 10px;
+      font-weight: 600;
+    }
+
+    .social-icons a {
+      color: var(--blue-dark);
+      font-size: 20px;
+      margin: 0 10px;
+      transition: color 0.3s;
+    }
+
+    .social-icons a:hover {
+      color: #01579b;
+    }
+
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes zoomIn {
+      from { opacity: 0; transform: scale(0.9); }
+      to { opacity: 1; transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Welcome to Harmony Health Care Portal</h1>
+    <p>Book appointments with ease</p>
+  </header>
+
+  <div class="nav" id="navLinks">
+    <a href="/vaccine">💉 Vaccine Scheduling</a>
+    <a href="/doctor">🩺 Doctor Appointments</a>
+    <a href="javascript:void(0);" onclick="handleAppointments()">📋 My Appointments</a>
+    <a href="javascript:void(0);" onclick="openAuth()" id="loginBtn">👤 Login / Sign Up</a>
+    <a href="javascript:void(0);" onclick="logout()" id="logoutBtn" style="display: none;">🚪 Logout</a>
+  </div>
+
+  <section class="about-section">
+    <div class="about-container">
+      <h2>About Our Hospital</h2>
+      <p class="fade-in">
+        Welcome to our trusted Health Care Portal — your one-stop destination for compassionate, specialized care.
+        Our hospital takes pride in offering comprehensive services for all age groups, with a strong focus on:
+      </p>
+      <ul class="fade-in delay-1">
+        <li><strong>👶 Pediatric Care:</strong> Gentle and expert treatment for children and infants</li>
+        <li><strong>👩‍⚕️ Gynecology:</strong> Expert care for women’s health and wellness</li>
+        <li><strong>💉 Vaccine Drives:</strong> Regular immunization camps for all age groups</li>
+        <li><strong>🗓️ Easy Appointment Scheduling:</strong> Hassle-free online booking from home</li>
+        <li><strong>❤️ Patient-Centered Services:</strong> Our doctors listen, care, and guide with empathy</li>
+      </ul>
+      <p class="fade-in delay-2">
+        Our mission is to ensure quality health services are accessible, approachable, and always centered around you and your loved ones.
+      </p>
+    </div>
+  </section>
+
+  <div id="authModal">
+    <form id="loginForm">
+      <h3 id="authTitle">Login</h3>
+      <input type="tel" name="phone" placeholder="Phone Number" required>
+      <input type="password" name="password" placeholder="Password" required>
+      <button type="submit">Login</button>
+      <p>Don't have an account? <span onclick="switchAuthForm('signup')">Sign Up</span></p>
+      <p id="authMsg" style="color: red;"></p>
+    </form>
+
+    <form id="signupForm" style="display: none;">
+      <h3>Sign Up</h3>
+      <input type="tel" name="phone" placeholder="Phone Number" required>
+      <input type="password" name="password" placeholder="Password" required>
+      <button type="submit">Sign Up</button>
+      <p>Already have an account? <span onclick="switchAuthForm('login')">Login</span></p>
+      <p id="signupMsg" style="color: red;"></p>
+    </form>
+  </div>
+
+  <footer>
+    <h4>Stay connected</h4>
+    <div class="social-icons">
+      <a href="#"><i class="fab fa-twitter"></i></a>
+      <a href="#"><i class="fab fa-instagram"></i></a>
+      <a href="#"><i class="fab fa-facebook-f"></i></a>
+    </div>
+    <p style="margin-block-start: 10px;">© 2025 Health Care Portal. All rights reserved.</p>
+  </footer>
+
+  <script>
+    const modal = document.getElementById('authModal');
+    let isUser = false;
+    let isAdmin = false;
+
+    function openAuth() {
+      modal.style.display = 'flex';
+      switchAuthForm('login');
+    }
+
+    function handleAppointments() {
+      if (isUser) {
+        window.location.href = '/user/dashboard.html';
+      } else {
+        alert("Please login to view your appointments.");
+        openAuth();
+      }
+    }
+
+    function logout() {
+      fetch('/api/userlogout')
+        .then(() => {
+          isUser = false;
+          isAdmin = false;
+          localStorage.removeItem("isAdmin");
+          checkSessionAndToggleUI();
+          window.location.href = '/';
+        })
+        .catch(err => console.error('Logout error:', err));
+    }
+
+    function switchAuthForm(to) {
+      document.getElementById('authMsg').innerText = '';
+      document.getElementById('signupMsg').innerText = '';
+      if (to === 'signup') {
+        document.getElementById('loginForm').style.display = 'none';
+        document.getElementById('signupForm').style.display = 'block';
+        document.getElementById('authTitle').innerText = 'Sign Up';
+      } else {
+        document.getElementById('loginForm').style.display = 'block';
+        document.getElementById('signupForm').style.display = 'none';
+        document.getElementById('authTitle').innerText = 'Login';
+      }
+    }
+
+    async function checkSessionAndToggleUI() {
+      try {
+        const res = await fetch('/api/check-session');
+        const data = await res.json();
+
+        const loginBtn = document.getElementById('loginBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+
+        if (data.loggedIn) {
+          loginBtn.style.display = 'none';
+          logoutBtn.style.display = 'inline-block';
+
+          if (data.role === 'user') isUser = true;
+          if (data.role === 'admin') {
+            isAdmin = true;
+            localStorage.setItem("isAdmin", "true");
+          }
+        } else {
+          loginBtn.style.display = 'inline-block';
+          logoutBtn.style.display = 'none';
+          isUser = false;
+          isAdmin = false;
+        }
+      } catch (err) {
+        console.error('Error checking session:', err);
+      }
+    }
+
+    window.onload = () => {
+      checkSessionAndToggleUI();
+
+      document.getElementById('signupForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const form = new FormData(e.target);
+        const body = Object.fromEntries(form.entries());
+
+        const res = await fetch('/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+
+        const data = await res.json();
+        const msg = document.getElementById('authMsg');
+        msg.innerText = data.message;
+        msg.style.color = res.ok ? 'green' : 'red';
+        if (res.ok) switchAuthForm('login');
+      };
+
+      document.getElementById('loginForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const form = new FormData(e.target);
+        const body = Object.fromEntries(form.entries());
+
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+
+        const data = await res.json();
+        const msg = document.getElementById('authMsg');
+
+        if (res.ok && data.success) {
+          modal.style.display = 'none';
+
+          if (data.role === 'admin') {
+            localStorage.setItem("isAdmin", "true");
+            window.location.href = '/admin/dashboard';
+          } else {
+            window.location.href = '/home.html';
+          }
+        } else {
+          msg.innerText = data.message || 'Login failed';
+          msg.style.color = 'red';
+        }
+      };
+    };
+  </script>
+</body>
+</html>

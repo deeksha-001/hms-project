@@ -1,0 +1,39 @@
+[
+    {
+      "id": 1,
+      "name": "Dr. Ayesha Khan",
+      "phone": "9876543210",
+      "languages": ["English", "Hindi", "Urdu"],
+      "qualification": "MBBS, MD",
+      "specialty": "Gynecology",
+      "available": ["Monday", "Wednesday", "Friday"]
+    },
+    {
+      "id": 2,
+      "name": "Dr. Neha Patel",
+      "phone": "9123456780",
+      "languages": ["English", "Gujarati", "Hindi"],
+      "qualification": "MBBS, DGO",
+      "specialty": "Obstetrics",
+      "available": ["Tuesday", "Thursday"]
+    },
+    {
+      "id": 3,
+      "name": "Dr. Sara Ali",
+      "phone": "9988776655",
+      "languages": ["English", "Hindi"],
+      "qualification": "MBBS, MD (Pediatrics)",
+      "specialty": "Pediatrics",
+      "available": ["Monday", "Thursday", "Saturday"]
+    },
+    {
+      "id": 4,
+      "name": "Dr. Meher Fatima",
+      "phone": "9112233445",
+      "languages": ["English", "Telugu"],
+      "qualification": "MBBS, MS (Surgery)",
+      "specialty": "Breast Surgery",
+      "available": ["Wednesday", "Friday"]
+    }
+  ]
+  
