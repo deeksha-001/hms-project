@@ -52,7 +52,7 @@ app.get('/admin/dashboard', (req, res) => {
   if (req.session.role === 'admin') {
     res.sendFile(path.join(__dirname, 'public', 'admin', 'admin.html'));
   } else {
-    res.redirect('/admin/login');
+    res.status(403).send('Unauthorized access');
   }
 });
 app.get('/logout', (req, res) => {
