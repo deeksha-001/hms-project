@@ -81,6 +81,14 @@ function insertPatientRecord(userId, data, callback) {
 app.post('/api/login', async (req, res) => {
   const { phone, password } = req.body;
 
+  // 🔐 Check if admin
+  if (phone === process.env.ADMIN_USER && password === process.env.ADMIN_PASS) {
+    req.session.loggedIn = true;
+    req.session.role = 'admin';
+    return res.json({ success: true, role: 'admin', message: 'Admin login successful' });
+  }
+
+  // 👤 Else, check for regular user in DB
   db.query('SELECT * FROM users WHERE phone = ?', [phone], async (err, results) => {
     if (err || results.length === 0) {
       return res.status(401).json({ success: false, message: 'Invalid phone or password' });
@@ -93,11 +101,10 @@ app.post('/api/login', async (req, res) => {
     }
 
     req.session.userId = user.id;
-    req.session.role = user.role || 'user'; // ← cleaner and scalable
+    req.session.role = user.role || 'user';
     req.session.loggedIn = true;
 
     res.json({ success: true, role: req.session.role });
-
   });
 });
 
