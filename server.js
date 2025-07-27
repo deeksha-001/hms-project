@@ -27,19 +27,33 @@ db.connect(err => {
 });
 
 // ===== MIDDLEWARE =====
+
+// ✅ Important for secure cookies to work behind Render proxy
+app.set('trust proxy', 1);
+
 app.use(cors({
-  origin: true,
+  origin: 'https://hms-working1.onrender.com',  // ✅ Must match your frontend domain exactly
   credentials: true
 }));
+
 app.use(express.json());
+
 app.use(session({
   secret: 'supersecretkey',
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: true,
-    sameSite: 'None'
-     }
+  cookie: {
+    secure: true,        // ✅ Required for HTTPS
+    sameSite: 'None',    // ✅ Required for cross-origin cookie sharing
+    httpOnly: true       // ✅ Prevents client-side JS from accessing cookies
+  }
 }));
+
+// ===== STATIC FILES =====
+app.use('/', express.static(path.join(__dirname, 'public')));
+app.use('/doctor', express.static(path.join(__dirname, 'public doctor')));
+app.use('/vaccine', express.static(path.join(__dirname, 'public vaccine')));
+app.use('/admin', express.static(path.join(__dirname, 'public', 'admin')));
 
 // ===== STATIC FILES =====
 app.use('/', express.static(path.join(__dirname, 'public')));
