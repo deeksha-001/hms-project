@@ -43,11 +43,12 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: true,        // ✅ Required for HTTPS
-    sameSite: 'None',    // ✅ Required for cross-origin cookie sharing
-    httpOnly: true       // ✅ Prevents client-side JS from accessing cookies
+    secure: process.env.NODE_ENV === 'production', // Only HTTPS in prod
+    sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax', // 'Lax' for local dev
+    httpOnly: true
   }
 }));
+
 
 // ===== STATIC FILES =====
 app.use('/', express.static(path.join(__dirname, 'public')));
