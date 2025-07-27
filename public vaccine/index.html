@@ -79,8 +79,8 @@
     <input type="tel" id="phone" name="phone" required pattern="[0-9]{10}">
 
     <label for="ageGroup">Age Group:</label>
-    <select id="ageGroup" name="ageGroup" required>
-      <option value="">Select</option>
+    <select id="ageGroup" name="ageGroup" required disabled>
+      <option value="">Auto-detecting...</option>
       <option value="0-5">0–5 years</option>
       <option value="6-17">6–17 years</option>
       <option value="18-45">18–45 years</option>
@@ -116,47 +116,88 @@
 
   <div class="message" id="message"></div>
 
-<script>
-  // Set today's date as minimum on load
-  document.addEventListener('DOMContentLoaded', () => {
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('appointmentDate').min = today;
-    updateAvailableVaccineSlots(); // hide past slots on load
-  });
-
-  // When user selects a new date, check time slot availability
-  document.getElementById('appointmentDate').addEventListener('change', updateAvailableVaccineSlots);
-
-  function updateAvailableVaccineSlots() {
-    const dateInput = document.getElementById('appointmentDate').value;
-    const slotSelect = document.getElementById('appointmentTime');
-    const allOptions = Array.from(slotSelect.options).slice(1); // skip "Select Time"
-
-    const now = new Date();
-    const selectedDate = new Date(dateInput);
-    const isToday = selectedDate.toDateString() === now.toDateString();
-
-    allOptions.forEach(option => {
-      option.hidden = false;
-
-      if (isToday) {
-        const [timeStr, period] = option.value.split(' ');
-        let [hours, minutes] = timeStr.split(':').map(Number);
-        if (period === 'PM' && hours !== 12) hours += 12;
-        if (period === 'AM' && hours === 12) hours = 0;
-
-        const slotTime = new Date();
-        slotTime.setHours(hours, minutes, 0, 0);
-
-        if (slotTime <= now) {
-          option.hidden = true;
-        }
-      }
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('appointmentDate').min = today;
+      updateAvailableVaccineSlots();
     });
 
-    slotSelect.value = '';
-  }
-</script>
+    // Disable past slots
+    document.getElementById('appointmentDate').addEventListener('change', updateAvailableVaccineSlots);
 
+    function updateAvailableVaccineSlots() {
+      const dateInput = document.getElementById('appointmentDate').value;
+      const slotSelect = document.getElementById('appointmentTime');
+      const now = new Date();
+      const selectedDate = new Date(dateInput);
+
+      const options = Array.from(slotSelect.options).slice(1);
+      options.forEach(option => {
+        option.hidden = false;
+        if (selectedDate.toDateString() === now.toDateString()) {
+          const [timeStr, period] = option.value.split(' ');
+          let [hours, minutes] = timeStr.split(':').map(Number);
+          if (period === 'PM' && hours !== 12) hours += 12;
+          if (period === 'AM' && hours === 12) hours = 0;
+          const slotTime = new Date();
+          slotTime.setHours(hours, minutes, 0, 0);
+          if (slotTime <= now) option.hidden = true;
+        }
+      });
+
+      slotSelect.value = '';
+    }
+
+    // Auto-select age group
+    document.getElementById('age').addEventListener('input', () => {
+      const age = parseInt(document.getElementById('age').value);
+      const group = document.getElementById('ageGroup');
+      if (isNaN(age)) return (group.value = '');
+
+      if (age <= 5) group.value = '0-5';
+      else if (age <= 17) group.value = '6-17';
+      else if (age <= 45) group.value = '18-45';
+      else if (age <= 60) group.value = '46-60';
+      else group.value = '60+';
+    });
+
+    // Handle form submission
+    document.getElementById('vaccineForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const form = e.target;
+      const messageDiv = document.getElementById('message');
+
+      const data = {
+        name: form.name.value,
+        age: form.age.value,
+        phone: form.phone.value,
+        ageGroup: form.ageGroup.value,
+        vaccines: Array.from(form.vaccines.selectedOptions).map(opt => opt.value),
+        appointmentDate: form.appointmentDate.value,
+        appointmentTime: form.appointmentTime.value
+      };
+
+      try {
+        const res = await fetch('/schedule', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        const result = await res.json();
+        if (res.ok) {
+          messageDiv.textContent = result.message || '✅ Appointment booked!';
+          form.reset();
+        } else {
+          messageDiv.textContent = result.error || '❌ Error booking appointment';
+        }
+      } catch (err) {
+        console.error('Booking error:', err);
+        messageDiv.textContent = '❌ Server error, please try again later.';
+      }
+    });
+  </script>
 </body>
 </html>

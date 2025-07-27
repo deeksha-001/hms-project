@@ -65,15 +65,21 @@ app.get('/logout', (req, res) => {
   });
 });
 
-// ===== ADMIN & USER LOGIN =====
-app.post('/api/login', (req, res) => {
-  const { phone, password } = req.body;
+// ===== HELPER FUNCTION =====
+function insertPatientRecord(userId, data, callback) {
+  const query = `INSERT INTO patients (userId, name, age, phone, type, date, time, doctorId, doctorName, history, vaccines)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+  const values = [
+    userId || null, data.name, data.age, data.phone, data.type,
+    data.date, data.time, data.doctorId || null, data.doctorName || null,
+    data.history || null, data.vaccines || null
+  ];
+  db.query(query, values, callback);
+}
 
-  if (phone === 'admin' && password === 'password123') {
-    req.session.loggedIn = true;
-    req.session.role = 'admin';
-    return res.json({ success: true, role: 'admin' });
-  }
+// ===== LOGIN (DRY admin/user logic) =====
+app.post('/api/login', async (req, res) => {
+  const { phone, password } = req.body;
 
   db.query('SELECT * FROM users WHERE phone = ?', [phone], async (err, results) => {
     if (err || results.length === 0) {
@@ -82,13 +88,16 @@ app.post('/api/login', (req, res) => {
 
     const user = results[0];
     const match = await bcrypt.compare(password, user.password);
-    if (!match) return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    if (!match) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
 
     req.session.userId = user.id;
-    req.session.role = 'user';
+    req.session.role = user.role || 'user'; // ← cleaner and scalable
     req.session.loggedIn = true;
 
-    res.json({ success: true, role: 'user' });
+    res.json({ success: true, role: req.session.role });
+
   });
 });
 
@@ -104,42 +113,38 @@ app.post('/api/book', (req, res) => {
   const { doctorId, doctorName, date, time, name, age, phone, history } = req.body;
   const userId = req.session.userId || null;
 
-  if (!doctorId || !doctorName || !date || !time || !name)
-    return res.status(400).json({ error: 'Missing required fields' });
+  if (!doctorId || !doctorName || !date || !time || !name || !age || !phone)
+    return res.status(400).json({ error: 'Missing fields' });
 
   db.query(
     `SELECT COUNT(*) AS count FROM doctor_appointments WHERE doctorId = ? AND date = ? AND time = ?`,
     [doctorId, date, time],
     (err, results) => {
       if (err) return res.status(500).json({ error: 'Error checking slot' });
-      if (results[0].count >= 8) return res.json({ error: 'Slot fully booked ' });
+      if (results[0].count >= 8) return res.status(409).json({ error: 'Slot full' });
 
-      // Check duplicate booking
       db.query(
         `SELECT * FROM patients WHERE 
          (userId = ? OR (name = ? AND phone = ?)) AND 
          type = 'doctor' AND doctorId = ? AND date = ? AND time = ?`,
         [userId, name, phone, doctorId, date, time],
-        (err2, dupResults) => {
-          if (err2) return res.status(500).json({ error: 'Error checking duplicate booking' });
-          if (dupResults.length > 0) return res.status(409).json({ error: 'You already booked this slot' });
+        (err2, dup) => {
+          if (err2) return res.status(500).json({ error: 'Duplicate check failed' });
+          if (dup.length > 0) return res.status(409).json({ error: 'Already booked' });
 
           db.query(
             `INSERT INTO doctor_appointments (doctorId, doctorName, name, age, phone, history, date, time)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
             [doctorId, doctorName, name, age, phone, history, date, time],
             (err3) => {
-              if (err3) return res.status(500).json({ error: 'Failed to book appointment' });
-
-              db.query(
-                `INSERT INTO patients (userId, name, age, phone, type, date, time, doctorId, doctorName, history)
-                 VALUES (?, ?, ?, ?, 'doctor', ?, ?, ?, ?, ?)`,
-                [userId, name, age, phone, date, time, doctorId, doctorName, history],
-                (err4) => {
-                  if (err4) return res.status(500).json({ error: 'Failed to save patient record' });
-                  res.json({ message: '✅ Doctor appointment booked successfully!' });
-                }
-              );
+              if (err3) return res.status(500).json({ error: 'Booking failed' });
+              insertPatientRecord(userId, {
+                name, age, phone, type: 'doctor',
+                date, time, doctorId, doctorName, history
+              }, (err4) => {
+                if (err4) return res.status(500).json({ error: 'Patient save failed' });
+                res.json({ message: '✅ Doctor appointment booked' });
+              });
             }
           );
         }
@@ -162,35 +167,31 @@ app.post('/schedule', (req, res) => {
     `SELECT COUNT(*) AS count FROM vaccine_appointments WHERE date = ? AND time = ? AND ageGroup = ?`,
     [appointmentDate, appointmentTime, ageGroup],
     (err, results) => {
-      if (err) return res.status(500).json({ error: 'Error checking booking limit' });
-      if (results[0].count >= 6) return res.status(409).json({ error: 'Slot full (6 max)' });
+      if (err) return res.status(500).json({ error: 'Slot check error' });
+      if (results[0].count >= 6) return res.status(409).json({ error: 'Slot full' });
 
-      // Check for duplicate vaccine booking
       db.query(
         `SELECT * FROM patients WHERE 
          (userId = ? OR (name = ? AND phone = ?)) AND 
          type = 'vaccine' AND date = ? AND time = ?`,
         [userId, name, phone, appointmentDate, appointmentTime],
-        (err2, dupResults) => {
-          if (err2) return res.status(500).json({ error: 'Error checking duplicate booking' });
-          if (dupResults.length > 0) return res.status(409).json({ error: 'You already booked this slot' });
+        (err2, dup) => {
+          if (err2) return res.status(500).json({ error: 'Duplicate check failed' });
+          if (dup.length > 0) return res.status(409).json({ error: 'Already booked' });
 
           db.query(
             `INSERT INTO vaccine_appointments (name, age, phone, ageGroup, date, time, vaccines)
              VALUES (?, ?, ?, ?, ?, ?, ?)`,
             [name, age, phone, ageGroup, appointmentDate, appointmentTime, vaccineList],
             (err3) => {
-              if (err3) return res.status(500).json({ error: 'Failed to save vaccine appointment' });
-
-              db.query(
-                `INSERT INTO patients (userId, name, age, phone, type, date, time, vaccines)
-                 VALUES (?, ?, ?, ?, 'vaccine', ?, ?, ?)`,
-                [userId, name, age, phone, appointmentDate, appointmentTime, vaccineList],
-                (err4) => {
-                  if (err4) return res.status(500).json({ error: 'Failed to save patient record' });
-                  res.json({ message: '✅ Vaccine appointment scheduled successfully!' });
-                }
-              );
+              if (err3) return res.status(500).json({ error: 'Booking failed' });
+              insertPatientRecord(userId, {
+                name, age, phone, type: 'vaccine',
+                date: appointmentDate, time: appointmentTime, vaccines: vaccineList
+              }, (err4) => {
+                if (err4) return res.status(500).json({ error: 'Patient save failed' });
+                res.json({ message: '✅ Vaccine appointment booked' });
+              });
             }
           );
         }
@@ -202,13 +203,13 @@ app.post('/schedule', (req, res) => {
 // ===== ADMIN: View All =====
 app.get('/api/doctorAppointments', (_, res) => {
   db.query('SELECT * FROM doctor_appointments', (err, results) => {
-    if (err) return res.status(500).json({ error: 'Failed to load doctor appointments' });
+    if (err) return res.status(500).json({ error: 'Load failed' });
     res.json(results);
   });
 });
 app.get('/api/vaccineAppointments', (_, res) => {
   db.query('SELECT * FROM vaccine_appointments', (err, results) => {
-    if (err) return res.status(500).json({ error: 'Failed to load vaccine appointments' });
+    if (err) return res.status(500).json({ error: 'Load failed' });
     res.json(results);
   });
 });
@@ -221,7 +222,7 @@ app.post('/api/register', async (req, res) => {
   try {
     const hashed = await bcrypt.hash(password, 10);
     db.query('INSERT INTO users (phone, password) VALUES (?, ?)', [phone, hashed], (err) => {
-      if (err) return res.status(500).json({ message: 'Phone number already registered' });
+      if (err) return res.status(500).json({ message: 'Already registered' });
       res.json({ message: '✅ Registered successfully' });
     });
   } catch {
@@ -230,7 +231,7 @@ app.post('/api/register', async (req, res) => {
 });
 
 app.get('/api/userlogout', (req, res) => {
-  req.session.destroy(() => res.json({ message: 'Logged out successfully' }));
+  req.session.destroy(() => res.json({ message: 'Logged out' }));
 });
 
 app.get('/api/user/bookings', (req, res) => {
@@ -241,7 +242,7 @@ app.get('/api/user/bookings', (req, res) => {
     'SELECT id, type, date, time, doctorName, vaccines, notes FROM patients WHERE userId = ?',
     [userId],
     (err, results) => {
-      if (err) return res.status(500).json({ error: 'Failed to fetch bookings' });
+      if (err) return res.status(500).json({ error: 'Fetch failed' });
       res.json(results);
     }
   );
@@ -258,20 +259,18 @@ app.post('/api/user/bookings/:id/notes', (req, res) => {
     'UPDATE patients SET notes = ? WHERE id = ? AND userId = ?',
     [notes, bookingId, userId],
     (err) => {
-      if (err) return res.status(500).json({ message: 'Failed to update notes' });
+      if (err) return res.status(500).json({ message: 'Update failed' });
       res.json({ message: 'Notes saved' });
     }
   );
 });
 
-// ===== SESSION CHECK =====
 app.get('/api/check-session', (req, res) => {
   if (req.session.role === 'admin') return res.json({ loggedIn: true, role: 'admin' });
   if (req.session.role === 'user') return res.json({ loggedIn: true, role: 'user' });
   res.json({ loggedIn: false });
 });
 
-// ===== START SERVER =====
 app.listen(PORT, () => {
   console.log(`🚀 Server running at http://localhost:${PORT}`);
 });

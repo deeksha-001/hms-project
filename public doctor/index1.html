@@ -118,91 +118,141 @@
   <div class="message" id="message"></div>
 
   <script>
-    document.addEventListener('DOMContentLoaded', async () => {
-      const today = new Date().toISOString().split('T')[0];
-      document.getElementById('date').min = today;
+  const weekdayMap = {
+    'Mon': 1,
+    'Tue': 2,
+    'Wed': 3,
+    'Thu': 4,
+    'Fri': 5,
+    'Sat': 6,
+    'Sun': 0
+  };
 
-      const res = await fetch('/api/doctors');
-      const doctors = await res.json();
-      const select = document.getElementById('doctorId');
-      const doctorDetailsDiv = document.getElementById('doctorDetails');
-      const doctorMap = {};
+  let doctorMap = {};
 
-      doctors.forEach(d => {
-        const option = document.createElement('option');
-        option.value = d.id;
-        option.textContent = `${d.name}`;
-        doctorMap[d.id] = d;
-        select.appendChild(option);
-      });
+  document.addEventListener('DOMContentLoaded', async () => {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('date').min = today;
 
-      select.addEventListener('change', () => {
-        const selected = select.value;
-        if (doctorMap[selected]) {
-          const doc = doctorMap[selected];
-          doctorDetailsDiv.innerHTML = `
-            <strong>Specialization:</strong> ${doc.specialty}<br>
-            <strong>Qualification:</strong> ${doc.qualification || 'N/A'}<br>
-            <strong>Availability:</strong> ${doc.availability} <br>
-            <strong>Languages:</strong> ${doc.languages}
-          `;
-          doctorDetailsDiv.style.display = 'block';
-        } else {
-          doctorDetailsDiv.style.display = 'none';
-        }
-      });
+    const res = await fetch('/api/doctors');
+    const doctors = await res.json();
+    const select = document.getElementById('doctorId');
+    const doctorDetailsDiv = document.getElementById('doctorDetails');
 
-      updateAvailableSlots();
+    doctors.forEach(d => {
+      const option = document.createElement('option');
+      option.value = d.id;
+      option.textContent = `${d.name}`;
+      doctorMap[d.id] = d;
+      select.appendChild(option);
     });
 
-    document.getElementById('date').addEventListener('change', updateAvailableSlots);
+    select.addEventListener('change', () => {
+      const selectedId = select.value;
+      if (!doctorMap[selectedId]) return;
 
-    function updateAvailableSlots() {
-      const selectedDate = document.getElementById('date').value;
-      const slotSelect = document.getElementById('time');
-      const allOptions = Array.from(slotSelect.options).slice(1); // Skip "Select Slot"
+      const doc = doctorMap[selectedId];
+      doctorDetailsDiv.innerHTML = `
+        <strong>Specialization:</strong> ${doc.specialty}<br>
+        <strong>Qualification:</strong> ${doc.qualification || 'N/A'}<br>
+        <strong>Availability:</strong> ${doc.availability}<br>
+        <strong>Languages:</strong> ${doc.languages}
+      `;
+      doctorDetailsDiv.style.display = 'block';
 
-      const now = new Date();
-      const selected = new Date(selectedDate);
-      const isToday = selected.toDateString() === now.toDateString();
+      // Update min date and disable unavailable days
+      const inputDate = document.getElementById('date');
+      inputDate.value = '';
+      inputDate.oninput = () => validateDoctorAvailability(inputDate.value, doc.availability);
+    });
 
-      allOptions.forEach(option => {
-        option.hidden = false;
-        if (isToday) {
-          const [timeStr, period] = option.value.split(' ');
-          let [hours, minutes] = timeStr.split(':').map(Number);
-          if (period === 'PM' && hours !== 12) hours += 12;
-          if (period === 'AM' && hours === 12) hours = 0;
+    updateAvailableSlots();
+  });
 
-          const slotTime = new Date();
-          slotTime.setHours(hours, minutes, 0, 0);
+  function validateDoctorAvailability(dateStr, availability) {
+    const date = new Date(dateStr);
+    const day = date.getDay(); // 0 (Sun) – 6 (Sat)
 
-          if (slotTime <= now) {
-            option.hidden = true;
+    const availableDays = parseAvailability(availability); // [1, 2, 3, 4, 5]
+    if (!availableDays.includes(day)) {
+      alert('This doctor is not available on the selected day.');
+      document.getElementById('date').value = '';
+    }
+  }
+
+  function parseAvailability(avail) {
+    const parts = avail.replace(/–/g, '-').split(',');
+    const days = [];
+
+    parts.forEach(part => {
+      const trimmed = part.trim();
+      if (trimmed.includes('-')) {
+        const [start, end] = trimmed.split('-').map(s => s.trim().slice(0, 3));
+        let startIdx = weekdayMap[start];
+        let endIdx = weekdayMap[end];
+        if (startIdx !== undefined && endIdx !== undefined) {
+          if (startIdx <= endIdx) {
+            for (let i = startIdx; i <= endIdx; i++) days.push(i);
+          } else {
+            for (let i = startIdx; i <= 6; i++) days.push(i);
+            for (let i = 0; i <= endIdx; i++) days.push(i);
           }
         }
-      });
-
-      slotSelect.value = '';
-    }
-
-    document.getElementById('appointmentForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const formData = new FormData(e.target);
-      const data = Object.fromEntries(formData.entries());
-
-      const doctorName = document.querySelector('#doctorId option:checked').textContent;
-      data.doctorName = doctorName;
-
-      const res = await fetch('/api/book', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-
-      const result = await res.json();
-      document.getElementById('message').textContent = result.message || result.error || 'Something went wrong';
+      } else {
+        const dayIdx = weekdayMap[trimmed.slice(0, 3)];
+        if (dayIdx !== undefined) days.push(dayIdx);
+      }
     });
-  </script>
+
+    return days;
+  }
+
+  document.getElementById('date').addEventListener('change', updateAvailableSlots);
+
+  function updateAvailableSlots() {
+    const selectedDate = document.getElementById('date').value;
+    const slotSelect = document.getElementById('time');
+    const allOptions = Array.from(slotSelect.options).slice(1);
+
+    const now = new Date();
+    const selected = new Date(selectedDate);
+    const isToday = selected.toDateString() === now.toDateString();
+
+    allOptions.forEach(option => {
+      option.hidden = false;
+      if (isToday) {
+        const [timeStr, period] = option.value.split(' ');
+        let [hours, minutes] = timeStr.split(':').map(Number);
+        if (period === 'PM' && hours !== 12) hours += 12;
+        if (period === 'AM' && hours === 12) hours = 0;
+
+        const slotTime = new Date();
+        slotTime.setHours(hours, minutes, 0, 0);
+        if (slotTime <= now) option.hidden = true;
+      }
+    });
+
+    slotSelect.value = '';
+  }
+
+  document.getElementById('appointmentForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData.entries());
+
+    const doctorName = document.querySelector('#doctorId option:checked').textContent;
+    data.doctorName = doctorName;
+
+    const res = await fetch('/api/book', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+
+    const result = await res.json();
+    document.getElementById('message').textContent = result.message || result.error || 'Something went wrong';
+  });
+</script>
+
 </body>
 </html>
