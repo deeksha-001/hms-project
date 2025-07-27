@@ -33,7 +33,7 @@ app.use(session({
   secret: 'supersecretkey',
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: false }
+  cookie: { secure: true   }
 }));
 
 // ===== STATIC FILES =====
