@@ -48,10 +48,6 @@ app.use('/admin', express.static(path.join(__dirname, 'public', 'admin')));
 app.get('/', (_, res) => res.sendFile(path.join(__dirname, 'public', 'home.html')));
 app.get('/doctor', (_, res) => res.sendFile(path.join(__dirname, 'public doctor', 'index1.html')));
 app.get('/vaccine', (_, res) => res.sendFile(path.join(__dirname, 'public vaccine', 'index.html')));
-app.get('/admin/login', (req, res) => {
-  if (req.session.role === 'admin') return res.redirect('/admin/dashboard');
-  res.sendFile(path.join(__dirname, 'public', 'admin', 'login.html'));
-});
 app.get('/admin/dashboard', (req, res) => {
   if (req.session.role === 'admin') {
     res.sendFile(path.join(__dirname, 'public', 'admin', 'admin.html'));
