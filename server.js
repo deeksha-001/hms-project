@@ -18,8 +18,6 @@ const db = mysql.createConnection({
   port: process.env.DB_PORT   
 });
 
-module.exports = db;
-
 db.connect(err => {
   if (err) {
     console.error('❌ MySQL connection failed:', err);
@@ -38,19 +36,10 @@ app.use(session({
   cookie: { secure: false }
 }));
 
-// ===== STATIC FILE SERVING =====
+// ===== STATIC FILES =====
 app.use('/', express.static(path.join(__dirname, 'public')));
 app.use('/doctor', express.static(path.join(__dirname, 'public doctor')));
 app.use('/vaccine', express.static(path.join(__dirname, 'public vaccine')));
-// ✅ FIXED /admin route — correct role check & only defined once!
-app.get('/admin/dashboard', (req, res) => {
-  if (req.session.role === 'admin') {
-    res.sendFile(path.join(__dirname, 'public', 'admin', 'admin.html'));
-  } else {
-    res.redirect('/admin/login');
-  }
-});
-
 app.use('/admin', express.static(path.join(__dirname, 'public', 'admin')));
 
 // ===== ROUTES =====
@@ -58,14 +47,16 @@ app.get('/', (_, res) => res.sendFile(path.join(__dirname, 'public', 'home.html'
 app.get('/doctor', (_, res) => res.sendFile(path.join(__dirname, 'public doctor', 'index1.html')));
 app.get('/vaccine', (_, res) => res.sendFile(path.join(__dirname, 'public vaccine', 'index.html')));
 app.get('/admin/login', (req, res) => {
-  if (req.session.role === 'admin') {
-    return res.redirect('/admin/dashboard');
-  }
-  res.sendFile(path.join(__dirname, 'public', 'admin', 'admin.html'));
+  if (req.session.role === 'admin') return res.redirect('/admin/dashboard');
+  res.sendFile(path.join(__dirname, 'public', 'admin', 'login.html'));
 });
-
-
-
+app.get('/admin/dashboard', (req, res) => {
+  if (req.session.role === 'admin') {
+    res.sendFile(path.join(__dirname, 'public', 'admin', 'admin.html'));
+  } else {
+    res.redirect('/admin/login');
+  }
+});
 app.get('/logout', (req, res) => {
   req.session.destroy(err => {
     if (err) console.log('Logout error:', err);
@@ -74,22 +65,16 @@ app.get('/logout', (req, res) => {
   });
 });
 
-
-// ===== ADMIN LOGIN =====
-const ADMIN_USERNAME = 'admin';
-const ADMIN_PASSWORD = 'password123';
-
+// ===== ADMIN & USER LOGIN =====
 app.post('/api/login', (req, res) => {
   const { phone, password } = req.body;
 
-  // Admin login
   if (phone === 'admin' && password === 'password123') {
     req.session.loggedIn = true;
-    req.session.role = 'admin';  // ✅ Important for check-session
+    req.session.role = 'admin';
     return res.json({ success: true, role: 'admin' });
   }
 
-  // Patient login
   db.query('SELECT * FROM users WHERE phone = ?', [phone], async (err, results) => {
     if (err || results.length === 0) {
       return res.status(401).json({ success: false, message: 'Invalid phone or password' });
@@ -97,20 +82,15 @@ app.post('/api/login', (req, res) => {
 
     const user = results[0];
     const match = await bcrypt.compare(password, user.password);
-    if (!match) {
-      return res.status(401).json({ success: false, message: 'Invalid credentials' });
-    }
+    if (!match) return res.status(401).json({ success: false, message: 'Invalid credentials' });
 
     req.session.userId = user.id;
-    req.session.role = 'user';  // ✅ Important for check-session
+    req.session.role = 'user';
     req.session.loggedIn = true;
 
     res.json({ success: true, role: 'user' });
   });
 });
-
-
-
 
 // ===== DOCTOR MODULE =====
 app.get('/api/doctors', (_, res) => {
@@ -120,22 +100,10 @@ app.get('/api/doctors', (_, res) => {
   });
 });
 
-app.get('/api/checkSlot', (req, res) => {
-  const { doctorId, date, time } = req.query;
-  if (!doctorId || !date || !time) return res.status(400).json({ error: 'Missing parameters' });
-
-  db.query(
-    `SELECT COUNT(*) AS count FROM doctor_appointments WHERE doctorId = ? AND date = ? AND time = ?`,
-    [doctorId, date, time],
-    (err, results) => {
-      if (err) return res.status(500).json({ error: 'Server error while checking slot' });
-      res.json({ full: results[0].count >= 6, count: results[0].count });
-    }
-  );
-});
-
 app.post('/api/book', (req, res) => {
   const { doctorId, doctorName, date, time, name, age, phone, history } = req.body;
+  const userId = req.session.userId || null;
+
   if (!doctorId || !doctorName || !date || !time || !name)
     return res.status(400).json({ error: 'Missing required fields' });
 
@@ -144,23 +112,34 @@ app.post('/api/book', (req, res) => {
     [doctorId, date, time],
     (err, results) => {
       if (err) return res.status(500).json({ error: 'Error checking slot' });
+      if (results[0].count >= 8) return res.json({ error: 'Slot fully booked ' });
 
-      if (results[0].count >= 6) return res.json({ error: 'Slot fully booked' });
-
+      // Check duplicate booking
       db.query(
-        `INSERT INTO doctor_appointments (doctorId, doctorName, name, age, phone, history, date, time)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [doctorId, doctorName, name, age, phone, history, date, time],
-        (err2) => {
-          if (err2) return res.status(500).json({ error: 'Failed to book appointment' });
+        `SELECT * FROM patients WHERE 
+         (userId = ? OR (name = ? AND phone = ?)) AND 
+         type = 'doctor' AND doctorId = ? AND date = ? AND time = ?`,
+        [userId, name, phone, doctorId, date, time],
+        (err2, dupResults) => {
+          if (err2) return res.status(500).json({ error: 'Error checking duplicate booking' });
+          if (dupResults.length > 0) return res.status(409).json({ error: 'You already booked this slot' });
 
           db.query(
-            `INSERT INTO patients (userId, name, age, phone, type, date, time, doctorId, doctorName, history)
-             VALUES (?, ?, ?, ?, 'doctor', ?, ?, ?, ?, ?)`,
-            [req.session.userId || null, name, age, phone, date, time, doctorId, doctorName, history],
+            `INSERT INTO doctor_appointments (doctorId, doctorName, name, age, phone, history, date, time)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [doctorId, doctorName, name, age, phone, history, date, time],
             (err3) => {
-              if (err3) return res.status(500).json({ error: 'Failed to save patient record' });
-              res.json({ message: '✅ Doctor appointment booked successfully!' });
+              if (err3) return res.status(500).json({ error: 'Failed to book appointment' });
+
+              db.query(
+                `INSERT INTO patients (userId, name, age, phone, type, date, time, doctorId, doctorName, history)
+                 VALUES (?, ?, ?, ?, 'doctor', ?, ?, ?, ?, ?)`,
+                [userId, name, age, phone, date, time, doctorId, doctorName, history],
+                (err4) => {
+                  if (err4) return res.status(500).json({ error: 'Failed to save patient record' });
+                  res.json({ message: '✅ Doctor appointment booked successfully!' });
+                }
+              );
             }
           );
         }
@@ -172,6 +151,8 @@ app.post('/api/book', (req, res) => {
 // ===== VACCINE MODULE =====
 app.post('/schedule', (req, res) => {
   const { name, age, phone, ageGroup, appointmentDate, appointmentTime, vaccines } = req.body;
+  const userId = req.session.userId || null;
+
   if (!name || !age || !phone || !ageGroup || !appointmentDate || !appointmentTime || !vaccines)
     return res.status(400).json({ error: 'Missing fields' });
 
@@ -182,24 +163,34 @@ app.post('/schedule', (req, res) => {
     [appointmentDate, appointmentTime, ageGroup],
     (err, results) => {
       if (err) return res.status(500).json({ error: 'Error checking booking limit' });
+      if (results[0].count >= 6) return res.status(409).json({ error: 'Slot full (6 max)' });
 
-      if (results[0].count >= 5)
-        return res.status(409).json({ error: '❌ Slot already fully booked for this age group!' });
-
+      // Check for duplicate vaccine booking
       db.query(
-        `INSERT INTO vaccine_appointments (name, age, phone, ageGroup, date, time, vaccines)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [name, age, phone, ageGroup, appointmentDate, appointmentTime, vaccineList],
-        (err2) => {
-          if (err2) return res.status(500).json({ error: 'Failed to save vaccine appointment' });
+        `SELECT * FROM patients WHERE 
+         (userId = ? OR (name = ? AND phone = ?)) AND 
+         type = 'vaccine' AND date = ? AND time = ?`,
+        [userId, name, phone, appointmentDate, appointmentTime],
+        (err2, dupResults) => {
+          if (err2) return res.status(500).json({ error: 'Error checking duplicate booking' });
+          if (dupResults.length > 0) return res.status(409).json({ error: 'You already booked this slot' });
 
           db.query(
-            `INSERT INTO patients (userId, name, age, phone, type, date, time, vaccines)
-             VALUES (?, ?, ?, ?, 'vaccine', ?, ?, ?)`,
-            [req.session.userId || null, name, age, phone, appointmentDate, appointmentTime, vaccineList],
+            `INSERT INTO vaccine_appointments (name, age, phone, ageGroup, date, time, vaccines)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [name, age, phone, ageGroup, appointmentDate, appointmentTime, vaccineList],
             (err3) => {
-              if (err3) return res.status(500).json({ error: 'Failed to save patient record' });
-              res.json({ message: '✅ Vaccine appointment scheduled successfully!' });
+              if (err3) return res.status(500).json({ error: 'Failed to save vaccine appointment' });
+
+              db.query(
+                `INSERT INTO patients (userId, name, age, phone, type, date, time, vaccines)
+                 VALUES (?, ?, ?, ?, 'vaccine', ?, ?, ?)`,
+                [userId, name, age, phone, appointmentDate, appointmentTime, vaccineList],
+                (err4) => {
+                  if (err4) return res.status(500).json({ error: 'Failed to save patient record' });
+                  res.json({ message: '✅ Vaccine appointment scheduled successfully!' });
+                }
+              );
             }
           );
         }
@@ -208,25 +199,24 @@ app.post('/schedule', (req, res) => {
   );
 });
 
-// Admin: View all appointments
-app.get('/api/doctorAppointments', (req, res) => {
+// ===== ADMIN: View All =====
+app.get('/api/doctorAppointments', (_, res) => {
   db.query('SELECT * FROM doctor_appointments', (err, results) => {
     if (err) return res.status(500).json({ error: 'Failed to load doctor appointments' });
     res.json(results);
   });
 });
-
-app.get('/api/vaccineAppointments', (req, res) => {
+app.get('/api/vaccineAppointments', (_, res) => {
   db.query('SELECT * FROM vaccine_appointments', (err, results) => {
     if (err) return res.status(500).json({ error: 'Failed to load vaccine appointments' });
     res.json(results);
   });
 });
 
-// ===== USER AUTH MODULE =====
+// ===== USER AUTH =====
 app.post('/api/register', async (req, res) => {
   const { phone, password } = req.body;
-  if (!phone || !password) return res.status(400).json({ message: "All fields required" });
+  if (!phone || !password) return res.status(400).json({ message: 'All fields required' });
 
   try {
     const hashed = await bcrypt.hash(password, 10);
@@ -234,36 +224,10 @@ app.post('/api/register', async (req, res) => {
       if (err) return res.status(500).json({ message: 'Phone number already registered' });
       res.json({ message: '✅ Registered successfully' });
     });
-  } catch (err) {
+  } catch {
     res.status(500).json({ message: 'Server error' });
   }
 });
-
-app.post('/api/userlogin', (req, res) => {
-  const { phone, password } = req.body;
-
-  // Admin shortcut login
-  if (phone === 'admin' && password === 'admin123') {
-    req.session.loggedIn = true;
-    req.session.role = 'admin';
-    return res.json({ message: 'Admin login success', role: 'admin' });
-  }
-
-  // Patient login
-  db.query('SELECT * FROM users WHERE phone = ?', [phone], async (err, results) => {
-    if (err || results.length === 0) return res.status(401).json({ message: 'Invalid credentials' });
-
-    const user = results[0];
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) return res.status(401).json({ message: 'Wrong password' });
-
-    req.session.userId = user.id;
-    req.session.role = 'user';
-    req.session.loggedIn = true;
-    res.json({ message: 'User login success', role: 'user' });
-  });
-});
-
 
 app.get('/api/userlogout', (req, res) => {
   req.session.destroy(() => res.json({ message: 'Logged out successfully' }));
@@ -273,10 +237,14 @@ app.get('/api/user/bookings', (req, res) => {
   const userId = req.session.userId;
   if (!userId) return res.status(401).json({ message: 'Unauthorized' });
 
-  db.query('SELECT id, type, date, time, doctorName, vaccines, notes FROM patients WHERE userId = ?', [userId], (err, results) => {
-    if (err) return res.status(500).json({ error: 'Failed to fetch bookings' });
-    res.json(results);
-  });
+  db.query(
+    'SELECT id, type, date, time, doctorName, vaccines, notes FROM patients WHERE userId = ?',
+    [userId],
+    (err, results) => {
+      if (err) return res.status(500).json({ error: 'Failed to fetch bookings' });
+      res.json(results);
+    }
+  );
 });
 
 app.post('/api/user/bookings/:id/notes', (req, res) => {
@@ -296,17 +264,12 @@ app.post('/api/user/bookings/:id/notes', (req, res) => {
   );
 });
 
+// ===== SESSION CHECK =====
 app.get('/api/check-session', (req, res) => {
-  if (req.session.role === 'admin') {
-    return res.json({ loggedIn: true, role: 'admin' });
-  }
-  if (req.session.role === 'user') {
-    return res.json({ loggedIn: true, role: 'user' });
-  }
-  return res.json({ loggedIn: false });
+  if (req.session.role === 'admin') return res.json({ loggedIn: true, role: 'admin' });
+  if (req.session.role === 'user') return res.json({ loggedIn: true, role: 'user' });
+  res.json({ loggedIn: false });
 });
-
-
 
 // ===== START SERVER =====
 app.listen(PORT, () => {

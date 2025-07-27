@@ -1,222 +1,208 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Doctor Appointments</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Doctor Appointment</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f0f8ff;
+      margin: 0;
       padding: 20px;
-      background-color: #f5f5f5;
+      color: #003344;
     }
-    #doctor-cards {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 20px;
-    }
-    .doctor-card {
-      background: #fff;
-      border: 1px solid #ccc;
-      padding: 15px;
-      inline-size: 300px;
-      border-radius: 10px;
-      box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
-    }
-    h1 {
+
+    h2 {
+      text-align: center;
       margin-block-end: 20px;
+      color: #004d61;
     }
-    button {
-      margin-block-start: 10px;
-      padding: 8px 12px;
-      border: none;
-      background-color: green;
-      color: white;
-      border-radius: 5px;
-      cursor: pointer;
+
+    form {
+      max-inline-size: 500px;
+      margin: 0 auto;
+      background-color: #ffffff;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
-    button:hover {
-      background-color: darkgreen;
-    }
-    input, select {
-      inline-size: 100%;
-      padding: 5px;
-      margin: 5px 0;
-    }
-    #booking-form {
-      display: none;
-      background: #fff;
-      padding: 20px;
-      border: 1px solid #ccc;
-      border-radius: 10px;
-      max-inline-size: 400px;
-      margin-block-start: 30px;
-      box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
-    }
-    #confirmation-message, #error-message {
-      margin-block-start: 15px;
+
+    label {
+      display: block;
+      margin: 12px 0 6px;
       font-weight: bold;
     }
-    #confirmation-message {
-      color: green;
+
+    input, select, textarea {
+      inline-size: 100%;
+      padding: 10px;
+      margin-block-end: 12px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
     }
-    #error-message {
-      color: red;
+
+    button {
+      background-color: #0288d1;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      inline-size: 100%;
+      font-size: 16px;
+    }
+
+    button:hover {
+      background-color: #01579b;
+    }
+
+    .message {
+      text-align: center;
+      margin-block-start: 20px;
+      color: green;
+      font-weight: bold;
+    }
+
+    #doctorDetails {
+      background: #f5faff;
+      border: 1px solid #cce5ff;
+      padding: 12px;
+      border-radius: 6px;
+      margin-block-start: -10px;
+      margin-block-end: 20px;
+      color: #004d61;
+      font-size: 0.95rem;
     }
   </style>
 </head>
 <body>
-  <h1>Our Doctors</h1>
-  <div id="doctor-cards"></div>
+  <h2>Book a Doctor Appointment</h2>
+  <form id="appointmentForm">
+    <label for="doctorId">Select Doctor:</label>
+    <select id="doctorId" name="doctorId" required></select>
 
-  <div id="booking-form">
-    <h3>Book Appointment</h3>
-    <form id="appointment-form">
-      <input type="hidden" id="selected-doctor-name">
-      <label>Name:
-        <input type="text" id="name" required>
-      </label><br>
-      <label>Age:
-        <input type="number" id="age" required>
-      </label><br>
-      <label>Phone Number:
-        <input type="tel" id="phone" required pattern="[0-9]{10}">
-      </label><br>
-      <label>Medical History (optional):
-        <input type="text" id="history">
-      </label><br>
-      <label>Select Date:
-        <input type="date" id="date" required>
-      </label><br>
-      <label>Select Time:
-        <select id="time" required></select>
-      </label><br>
-      <button type="submit">Confirm Booking</button>
-    </form>
-  </div>
+    <div id="doctorDetails" style="display: none;"></div>
 
-  <!-- Success / Error Message (outside form so they're visible even after hiding form) -->
-  <div id="confirmation-message"></div>
-  <div id="error-message"></div>
+    <label for="date">Date:</label>
+    <input type="date" id="date" name="date" required min="">
 
-  <div id="scroll-target" style="block-size: 1px;"></div>
+    <label for="time">Time:</label>
+    <select id="time" name="time" required>
+      <option value="">Select Slot</option>
+      <option value="9:00 AM">9:00 AM</option>
+      <option value="10:00 AM">10:00 AM</option>
+      <option value="11:00 AM">11:00 AM</option>
+      <option value="12:00 PM">12:00 PM</option>
+      <option value="2:00 PM">2:00 PM</option>
+      <option value="3:00 PM">3:00 PM</option>
+      <option value="4:00 PM">4:00 PM</option>
+    </select>
+
+    <label for="name">Patient Name:</label>
+    <input type="text" id="name" name="name" required />
+
+    <label for="age">Age:</label>
+    <input type="number" id="age" name="age" required min="0" />
+
+    <label for="phone">Phone:</label>
+    <input type="tel" id="phone" name="phone" required pattern="[0-9]{10}" />
+
+    <label for="history">Medical History (Optional):</label>
+    <textarea id="history" name="history" rows="3" placeholder="E.g., Diabetes, Heart issues, etc."></textarea>
+
+    <button type="submit">Book Appointment</button>
+  </form>
+
+  <div class="message" id="message"></div>
 
   <script>
-    const timeSlots = [
-      "9:00am - 10:00am", "10:00am - 11:00am", "11:00am - 12:00pm",
-      "12:00pm - 1:00pm", "1:00pm - 2:00pm", "2:00pm - 3:00pm",
-      "3:00pm - 4:00pm", "4:00pm - 5:00pm"
-    ];
+    document.addEventListener('DOMContentLoaded', async () => {
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('date').min = today;
 
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('date').min = today;
+      const res = await fetch('/api/doctors');
+      const doctors = await res.json();
+      const select = document.getElementById('doctorId');
+      const doctorDetailsDiv = document.getElementById('doctorDetails');
+      const doctorMap = {};
 
-    const timeSelect = document.getElementById('time');
-    timeSlots.forEach(slot => {
-      const option = document.createElement('option');
-      option.value = slot;
-      option.textContent = slot;
-      timeSelect.appendChild(option);
+      doctors.forEach(d => {
+        const option = document.createElement('option');
+        option.value = d.id;
+        option.textContent = `${d.name}`;
+        doctorMap[d.id] = d;
+        select.appendChild(option);
+      });
+
+      select.addEventListener('change', () => {
+        const selected = select.value;
+        if (doctorMap[selected]) {
+          const doc = doctorMap[selected];
+          doctorDetailsDiv.innerHTML = `
+            <strong>Specialization:</strong> ${doc.specialty}<br>
+            <strong>Qualification:</strong> ${doc.qualification || 'N/A'}<br>
+            <strong>Availability:</strong> ${doc.availability} <br>
+            <strong>Languages:</strong> ${doc.languages}
+          `;
+          doctorDetailsDiv.style.display = 'block';
+        } else {
+          doctorDetailsDiv.style.display = 'none';
+        }
+      });
+
+      updateAvailableSlots();
     });
 
-    let selectedDoctorId = "";
-    let selectedDoctorName = "";
+    document.getElementById('date').addEventListener('change', updateAvailableSlots);
 
-    function openBookingForm(doctorId, doctorName) {
-      selectedDoctorId = doctorId;
-      selectedDoctorName = doctorName;
-      document.getElementById('selected-doctor-name').value = doctorName;
-      document.getElementById('booking-form').style.display = 'block';
-      document.getElementById('scroll-target').scrollIntoView({ behavior: 'smooth' });
+    function updateAvailableSlots() {
+      const selectedDate = document.getElementById('date').value;
+      const slotSelect = document.getElementById('time');
+      const allOptions = Array.from(slotSelect.options).slice(1); // Skip "Select Slot"
 
-      document.getElementById('confirmation-message').innerText = '';
-      document.getElementById('error-message').innerText = '';
-    }
+      const now = new Date();
+      const selected = new Date(selectedDate);
+      const isToday = selected.toDateString() === now.toDateString();
 
-    async function bookAppointment(event) {
-      event.preventDefault();
+      allOptions.forEach(option => {
+        option.hidden = false;
+        if (isToday) {
+          const [timeStr, period] = option.value.split(' ');
+          let [hours, minutes] = timeStr.split(':').map(Number);
+          if (period === 'PM' && hours !== 12) hours += 12;
+          if (period === 'AM' && hours === 12) hours = 0;
 
-      const name = document.getElementById('name').value.trim();
-      const age = document.getElementById('age').value.trim();
-      const phone = document.getElementById('phone').value.trim();
-      const history = document.getElementById('history').value.trim();
-      const date = document.getElementById('date').value;
-      const time = document.getElementById('time').value;
+          const slotTime = new Date();
+          slotTime.setHours(hours, minutes, 0, 0);
 
-      if (!name || !age || !phone || !date || !time) {
-        document.getElementById('error-message').innerText = "❗ Please fill in all required fields.";
-        return;
-      }
-
-      const phonePattern = /^\d{10}$/;
-      if (!phonePattern.test(phone)) {
-        document.getElementById('error-message').innerText = "📱 Please enter a valid 10-digit phone number.";
-        return;
-      }
-
-      try {
-        const checkRes = await fetch(`/api/checkSlot?doctorId=${selectedDoctorId}&date=${date}&time=${encodeURIComponent(time)}`);
-        const checkData = await checkRes.json();
-
-        if (checkData.full) {
-          document.getElementById('error-message').innerText = checkData.message || "❌ Slot is full.";
-          return;
+          if (slotTime <= now) {
+            option.hidden = true;
+          }
         }
-
-        const res = await fetch('/api/book', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            doctorId: parseInt(selectedDoctorId),
-            doctorName: selectedDoctorName,
-            name, age, phone, history, date, time
-          })
-        });
-
-        const result = await res.json();
-        console.log(result); // 👈 log to browser console
-
-        if (res.ok && result.message) {
-          document.getElementById('confirmation-message').innerText = result.message;
-          document.getElementById('error-message').innerText = '';
-          document.getElementById('appointment-form').reset();
-          document.getElementById('booking-form').style.display = 'none';
-        } else {
-          document.getElementById('error-message').innerText = result.error || 'Something went wrong';
-          document.getElementById('confirmation-message').innerText = '';
-        }
-
-      } catch (error) {
-        console.error("Booking failed:", error);
-        document.getElementById('error-message').innerText = 'Server error. Please try again.';
-      }
-    }
-
-    document.getElementById('appointment-form').addEventListener('submit', bookAppointment);
-
-    // Fetch doctors
-    fetch('/api/doctors')
-      .then(res => res.json())
-      .then(doctors => {
-        const container = document.getElementById('doctor-cards');
-        doctors.forEach(doc => {
-          const card = document.createElement('div');
-          card.className = 'doctor-card';
-          card.innerHTML = `
-            <h3>${doc.name}</h3>
-            <p><strong>Phone:</strong> ${doc.phone}</p>
-            <p><strong>Languages:</strong> ${doc.languages}</p>
-            <p><strong>Qualification:</strong> ${doc.qualification}</p>
-            <p><strong>Specialty:</strong> ${doc.specialty}</p>
-            <p><strong>Available:</strong> ${doc.availability}</p>
-            <button onclick="openBookingForm('${doc.id}', '${doc.name}')">Book</button>
-          `;
-          container.appendChild(card);
-        });
-      })
-      .catch(err => {
-        console.error('Error fetching doctors:', err);
-        document.getElementById('doctor-cards').innerText = "⚠️ Failed to load doctor list.";
       });
+
+      slotSelect.value = '';
+    }
+
+    document.getElementById('appointmentForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const data = Object.fromEntries(formData.entries());
+
+      const doctorName = document.querySelector('#doctorId option:checked').textContent;
+      data.doctorName = doctorName;
+
+      const res = await fetch('/api/book', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+
+      const result = await res.json();
+      document.getElementById('message').textContent = result.message || result.error || 'Something went wrong';
+    });
   </script>
 </body>
 </html>

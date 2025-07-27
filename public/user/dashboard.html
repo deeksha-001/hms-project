@@ -5,76 +5,104 @@
   <title>Your Bookings</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background-color: #f0f9ff;
-      margin: 0;
-      padding: 0;
-      color: #003344;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-block-size: 100vh;
-    }
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
 
-    header {
-      background-color: #b3e5fc;
-      padding: 30px;
-      inline-size: 100%;
-      text-align: center;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    }
+  body {
+    font-family: 'Poppins', sans-serif;
+    background-color: #f0f9ff;
+    margin: 0;
+    padding: 0;
+    color: #003344;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-block-size: 100vh;
+  }
 
+  header {
+    background-color: #b3e5fc;
+    padding: 30px;
+    inline-size: 100%;
+    text-align: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  header h2 {
+    margin: 0;
+    font-size: 2rem;
+    color: #004d61;
+    font-weight: 600;
+  }
+
+  #bookingsList {
+    list-style-type: none;
+    padding: 0;
+    margin: 30px 0;
+    max-inline-size: 600px;
+    inline-size: 90%;
+  }
+
+  #bookingsList li {
+    background-color: #e0f7fa;
+    border-inline-start: 6px solid #00acc1;
+    padding: 15px 20px;
+    margin-block-end: 15px;
+    border-radius: 8px;
+    font-size: 1rem;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  }
+
+  textarea {
+    margin-block-start: 12px;
+    inline-size: 100%;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 10px;
+    resize: vertical;
+    font-size: 14px;
+    font-family: 'Poppins', sans-serif;
+  }
+
+  button {
+    background-color: #0288d1;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 15px;
+    cursor: pointer;
+    margin-block-start: 10px;
+    transition: background-color 0.3s ease;
+  }
+
+  button:hover {
+    background-color: #01579b;
+  }
+
+  button:last-of-type {
+    background-color: #d32f2f;
+    margin-block-end: 40px;
+  }
+
+  button:last-of-type:hover {
+    background-color: #b71c1c;
+  }
+
+  @media (max-inline-size: 600px) {
     header h2 {
-      margin: 0;
-      font-size: 2rem;
-      color: #004d61;
-    }
-
-    #bookingsList {
-      list-style-type: none;
-      padding: 0;
-      margin: 30px 0;
-      max-inline-size: 600px;
-      inline-size: 90%;
+      font-size: 1.6rem;
     }
 
     #bookingsList li {
-      background-color: #e0f7fa;
-      border-inline-start: 6px solid #00acc1;
-      padding: 15px 20px;
-      margin-block-end: 10px;
-      border-radius: 8px;
-      font-size: 1rem;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      font-size: 0.95rem;
     }
 
     button {
-      background-color: #0288d1;
-      color: white;
-      border: none;
-      padding: 12px 25px;
-      border-radius: 6px;
-      font-size: 16px;
-      cursor: pointer;
-      margin-block-end: 30px;
-      transition: background-color 0.3s;
+      font-size: 14px;
     }
+  }
+</style>
 
-    button:hover {
-      background-color: #01579b;
-    }
-
-    @media (max-inline-size: 600px) {
-      header h2 {
-        font-size: 1.5rem;
-      }
-
-      #bookingsList li {
-        font-size: 0.95rem;
-      }
-    }
-  </style>
 </head>
 <body>
   <header>
@@ -84,105 +112,89 @@
   <ul id="bookingsList"></ul>
   <button onclick="logout()">Logout</button>
 
- <script>
-  checkSession();
+  <script>
+    checkSession();
 
-  async function checkSession() {
-    try {
-      const res = await fetch('/api/check-session', {
-        credentials: 'include'
-      });
-
-      const data = await res.json();
-
-      if (!data.loggedIn || data.role !== 'user') {
-        window.location.href = '/user/login.html';
-      } else {
-        loadBookings();   // ✅ only if logged in
-        loadNotes();      // optional if you keep general notes later
-      }
-    } catch (err) {
-      console.error('Error checking session', err);
-      window.location.href = '/user/login.html';
-    }
-  }
-
-  async function loadBookings() {
-    try {
-      const res = await fetch('/api/user/bookings');
-      if (!res.ok) {
-        if (res.status === 401) {
-          alert("Session expired. Please log in again.");
-          localStorage.removeItem('isUser');
-          window.location.href = '/user/login.html';
-        }
-        return;
-      }
-
-      const data = await res.json();
-      const list = document.getElementById('bookingsList');
-      list.innerHTML = '';
-
-      if (data.length === 0) {
-        list.innerHTML = '<li>No bookings yet</li>';
-      } else {
-        data.forEach(b => {
-          const item = document.createElement('li');
-
-          item.innerHTML = `
-            <div>
-              <strong>${b.type.charAt(0).toUpperCase() + b.type.slice(1)}</strong> - ${b.date} @ ${b.time}
-              ${b.doctorName ? `<br>Doctor: ${b.doctorName}` : ''}
-              ${b.vaccines ? `<br>Vaccines: ${b.vaccines}` : ''}
-            </div>
-            <textarea rows="2" placeholder="Write notes here..." data-id="${b.id}" style="margin-block-start:10px;inline-size:100%;">${b.notes || ''}</textarea>
-            <button onclick="saveNote(${b.id}, this.previousElementSibling.value)" style="margin-block-start:8px;">Save Note</button>
-          `;
-
-          list.appendChild(item);
+    async function checkSession() {
+      try {
+        const res = await fetch('/api/check-session', {
+          credentials: 'include'
         });
+        const data = await res.json();
+        if (!data.loggedIn || data.role !== 'user') {
+          window.location.href = '/user/login.html';
+        } else {
+          loadBookings();
+        }
+      } catch (err) {
+        console.error('Error checking session', err);
+        window.location.href = '/user/login.html';
       }
-    } catch (err) {
-      console.error('Error:', err);
-      alert("Could not load bookings.");
     }
-  }
 
-  async function saveNote(id, noteText) {
-    try {
-      const res = await fetch(`/api/user/bookings/${id}/notes`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notes: noteText })
-      });
+    async function loadBookings() {
+      try {
+        const res = await fetch('/api/user/bookings');
+        if (!res.ok) {
+          if (res.status === 401) {
+            alert("Session expired. Please log in again.");
+            localStorage.removeItem('isUser');
+            window.location.href = '/user/login.html';
+          }
+          return;
+        }
 
-      const data = await res.json();
-      alert(data.message);
-    } catch (err) {
-      console.error('Failed to save note', err);
-      alert('Failed to save note');
-    }
-  }
+        const data = await res.json();
+        const list = document.getElementById('bookingsList');
+        list.innerHTML = '';
 
-  async function logout() {
-    await fetch('/api/userlogout');
-    localStorage.removeItem('isUser');
-    window.location.href = '/';  // redirects to home.html
-  }
+        if (data.length === 0) {
+          list.innerHTML = '<li>No bookings yet</li>';
+        } else {
+          data.forEach(b => {
+            const item = document.createElement('li');
 
-  async function loadNotes() {
-    // Optional — if you still use general notes
-    try {
-      const res = await fetch('/api/user/notes');
-      const data = await res.json();
-      if (res.ok && document.getElementById('notesArea')) {
-        document.getElementById('notesArea').value = data.notes || '';
+            item.innerHTML = `
+              <div>
+                <strong>${b.type.charAt(0).toUpperCase() + b.type.slice(1)}</strong> - ${b.date} @ ${b.time}
+                ${b.doctorName ? `<br>Doctor: ${b.doctorName}` : ''}
+                ${b.vaccines ? `<br>Vaccines: ${b.vaccines}` : ''}
+              </div>
+              <textarea rows="2" placeholder="Write notes here..." data-id="${b.id}">${b.notes || ''}</textarea>
+              <button onclick="saveNote(${b.id}, this.previousElementSibling.value)">Save Note</button>
+            `;
+
+            list.appendChild(item);
+          });
+        }
+      } catch (err) {
+        console.error('Error loading bookings:', err);
+        alert("Could not load bookings.");
       }
-    } catch (err) {
-      console.error('Failed to load notes', err);
     }
-  }
-</script>
+
+    async function saveNote(id, noteText) {
+      try {
+        const res = await fetch(`/api/user/bookings/${id}/notes`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ notes: noteText })
+        });
+
+        const data = await res.json();
+        alert(data.message);
+      } catch (err) {
+        console.error('Failed to save note', err);
+        alert('Failed to save note');
+      }
+    }
+
+    async function logout() {
+      await fetch('/api/userlogout');
+      localStorage.removeItem('isUser');
+      window.location.href = '/';
+    }
+  </script>
 
 </body>
 </html>

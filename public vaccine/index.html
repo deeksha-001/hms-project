@@ -2,252 +2,161 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Vaccine Scheduling</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f1f8ff;
       margin: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      block-size: 100vh;
+      padding: 20px;
+      color: #003344;
+    }
+
+    h2 {
       text-align: center;
-      flex-direction: column;
-    }
-    .age-group-section, .vaccines-section, .confirmation-section, .schedule-section {
       margin-block-end: 20px;
+      color: #004d61;
     }
-    #vaccines-list {
-      list-style-type: none;
+
+    form {
+      max-inline-size: 600px;
+      margin: 0 auto;
+      background-color: #ffffff;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
-    #vaccines-list li {
-      padding: 5px;
+
+    label {
+      display: block;
+      margin-block-start: 15px;
+      font-weight: bold;
     }
+
+    input, select {
+      inline-size: 100%;
+      padding: 10px;
+      margin-block-start: 5px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+
     button {
-      padding: 10px 20px;
-      background-color: #4CAF50;
+      background-color: #0288d1;
       color: white;
       border: none;
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 16px;
       cursor: pointer;
+      inline-size: 100%;
+      margin-block-start: 20px;
     }
+
     button:hover {
-      background-color: #45a049;
+      background-color: #01579b;
     }
-    .schedule-section input, .schedule-section select {
-      padding: 8px;
-      margin: 5px 0;
-    }
-    .confirmation-message {
+
+    .message {
       margin-block-start: 20px;
-      font-size: 16px;
-      color: green;
-    }
-    .error-message {
-      margin-block-start: 20px;
-      font-size: 16px;
-      color: red;
+      text-align: center;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
-
-  <h1>Vaccine Scheduling System</h1>
-  <p>Select your age group to see the required vaccines and schedule an appointment.</p>
-
-  <!-- Age Group Selection -->
-  <div class="age-group-section">
-    <label for="age-group">Select Age Group:</label>
-    <select id="age-group" onchange="showVaccines()" required>
-      <option value="">--Select Age Group--</option>
-      <option value="0-18">0-18</option>
-      <option value="19-50">19-50</option>
-      <option value="51-65">51-65</option>
-      <option value="66+">66+</option>
-    </select>
-  </div>
-
-  <!-- Vaccines List -->
-  <div class="vaccines-section">
-    <h3>Required Vaccines</h3>
-    <ul id="vaccines-list"></ul>
-  </div>
-
-  <!-- Name, Age, and Phone Inputs -->
-  <div class="schedule-section" id="schedule-section" style="display:none;">
-    <h3>Provide Your Details</h3>
-    <label for="name">Full Name:</label>
-    <input type="text" id="name" required><br>
+  <h2>Schedule Your Vaccine Appointment</h2>
+  <form id="vaccineForm">
+    <label for="name">Patient Name:</label>
+    <input type="text" id="name" name="name" required>
 
     <label for="age">Age:</label>
-    <input type="number" id="age" required><br>
+    <input type="number" id="age" name="age" required min="0">
 
     <label for="phone">Phone Number:</label>
-    <input type="tel" id="phone" required><br>
+    <input type="tel" id="phone" name="phone" required pattern="[0-9]{10}">
 
-    <!-- Existing Appointment Date and Time -->
-    <label for="appointment-date">Select Date:</label>
-<input type="date" id="appointment-date" required min=""><br>
+    <label for="ageGroup">Age Group:</label>
+    <select id="ageGroup" name="ageGroup" required>
+      <option value="">Select</option>
+      <option value="0-5">0–5 years</option>
+      <option value="6-17">6–17 years</option>
+      <option value="18-45">18–45 years</option>
+      <option value="46-60">46–60 years</option>
+      <option value="60+">60+ years</option>
+    </select>
 
-<script>
-  // Disable past dates
-  const today = new Date().toISOString().split("T")[0];
-  document.getElementById("appointment-date").setAttribute("min", today);
-</script>
+    <label for="vaccines">Vaccines:</label>
+    <select id="vaccines" name="vaccines" multiple required>
+      <option value="BCG">BCG</option>
+      <option value="Polio">Polio</option>
+      <option value="Hepatitis B">Hepatitis B</option>
+      <option value="MMR">MMR</option>
+      <option value="COVID-19">COVID-19</option>
+    </select>
 
+    <label for="appointmentDate">Appointment Date:</label>
+    <input type="date" id="appointmentDate" name="appointmentDate" required>
 
-    <label for="appointment-time">Select Time:</label>
-    <select id="appointment-time" required>
-      <option value="">--Select Time--</option>
+    <label for="appointmentTime">Appointment Time:</label>
+    <select id="appointmentTime" name="appointmentTime" required>
+      <option value="">Select Time</option>
       <option value="9:00 AM">9:00 AM</option>
       <option value="10:00 AM">10:00 AM</option>
       <option value="11:00 AM">11:00 AM</option>
-      <option value="1:00 PM">1:00 PM</option>
+      <option value="12:00 PM">12:00 PM</option>
       <option value="2:00 PM">2:00 PM</option>
-    </select><br>
+      <option value="3:00 PM">3:00 PM</option>
+    </select>
 
-    <button onclick="scheduleAppointment()">Schedule Appointment</button>
-  </div>
+    <button type="submit">Schedule Appointment</button>
+  </form>
 
-  <!-- Confirmation Button -->
-  <div class="confirmation-section">
-    <button id="confirm-btn" onclick="confirmVaccine()">Confirm and Schedule</button>
-  </div>
+  <div class="message" id="message"></div>
 
-  <!-- Confirmation Message -->
-  <div class="confirmation-message" id="confirmation-message"></div>
+<script>
+  // Set today's date as minimum on load
+  document.addEventListener('DOMContentLoaded', () => {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('appointmentDate').min = today;
+    updateAvailableVaccineSlots(); // hide past slots on load
+  });
 
-  <!-- Error Message -->
-  <div class="error-message" id="error-message"></div>
+  // When user selects a new date, check time slot availability
+  document.getElementById('appointmentDate').addEventListener('change', updateAvailableVaccineSlots);
 
-  <script>
-    function showVaccines() {
-      const ageGroup = document.getElementById("age-group").value;
-      const vaccinesList = document.getElementById("vaccines-list");
+  function updateAvailableVaccineSlots() {
+    const dateInput = document.getElementById('appointmentDate').value;
+    const slotSelect = document.getElementById('appointmentTime');
+    const allOptions = Array.from(slotSelect.options).slice(1); // skip "Select Time"
 
-      // Clear the current list
-      vaccinesList.innerHTML = "";
+    const now = new Date();
+    const selectedDate = new Date(dateInput);
+    const isToday = selectedDate.toDateString() === now.toDateString();
 
-      let vaccines = [];
+    allOptions.forEach(option => {
+      option.hidden = false;
 
-      // Based on the selected age group, assign the corresponding vaccines
-      if (ageGroup === "0-18") {
-        vaccines = ["Hepatitis B", "DTP (Diphtheria, Tetanus, Pertussis)", "Polio", "MMR (Measles, Mumps, Rubella)"];
-      } else if (ageGroup === "19-50") {
-        vaccines = ["Flu Vaccine", "COVID-19 Vaccine", "Tetanus"];
-      } else if (ageGroup === "51-65") {
-        vaccines = ["Flu Vaccine", "Pneumococcal Vaccine", "COVID-19 Booster"];
-      } else if (ageGroup === "66+") {
-        vaccines = ["Flu Vaccine", "Pneumococcal Vaccine", "COVID-19 Booster", "Shingles Vaccine"];
+      if (isToday) {
+        const [timeStr, period] = option.value.split(' ');
+        let [hours, minutes] = timeStr.split(':').map(Number);
+        if (period === 'PM' && hours !== 12) hours += 12;
+        if (period === 'AM' && hours === 12) hours = 0;
+
+        const slotTime = new Date();
+        slotTime.setHours(hours, minutes, 0, 0);
+
+        if (slotTime <= now) {
+          option.hidden = true;
+        }
       }
+    });
 
-      // Create and display the vaccine list dynamically
-      vaccines.forEach(vaccine => {
-        const listItem = document.createElement("li");
-        listItem.textContent = vaccine;
-        vaccinesList.appendChild(listItem);
-      });
-
-      // Show the confirmation button after vaccines are displayed
-      document.getElementById("confirm-btn").style.display = "inline-block";
-    }
-
-    function confirmVaccine() {
-      const ageGroup = document.getElementById("age-group").value;
-
-      if (ageGroup === "") {
-        alert("Please select an age group to proceed.");
-      } else {
-        // Show schedule section after confirmation
-        document.getElementById("schedule-section").style.display = "block";
-      }
-    }
-
-    function scheduleAppointment() {
-      const name = document.getElementById("name").value;
-      const age = document.getElementById("age").value;
-      const phone = document.getElementById("phone").value;
-      const appointmentDate = document.getElementById("appointment-date").value;
-      const appointmentTime = document.getElementById("appointment-time").value;
-
-      // Check for missing values
-      if (!name || !age || !phone || !appointmentDate || !appointmentTime) {
-        alert("Please fill in all fields to schedule the appointment.");
-      } else {
-        const ageGroup = document.getElementById("age-group").value;
-        const vaccines = getVaccinesList();
-
-        if (!/^\d{10}$/.test(phone)) {
-        alert("Invalid phone number.");
-        return;
-      }
-
-      let [minAge, maxAge] = ageGroup.split("-").map(Number);
-      if (age < minAge || age > (maxAge || 150)) {
-        alert(`Age must be between ${minAge} and ${maxAge || '150'}.`);
-        return;
-      }
-        // Send a POST request to the backend with all the necessary details
-        fetch('http://localhost:3000/schedule', {  // Updated URL to use port 3000
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            name: name,
-            age: age,
-            phone: phone,
-            ageGroup: ageGroup,
-            appointmentDate: appointmentDate,
-            appointmentTime: appointmentTime,
-            vaccines: vaccines
-          })
-        })
-        .then(response => {
-          if (!response.ok) {
-            return response.json().then(err => { throw new Error(err.message); });
-          }
-          return response.json();
-        })
-        .then(data => {
-          const confirmationMessage = `Your vaccine appointment has been scheduled successfully!<br>
-            Name: ${name}<br>
-            Age: ${age}<br>
-            Phone: ${phone}<br>
-            Date: ${appointmentDate}<br>
-            Time: ${appointmentTime}<br>
-            Vaccine(s): <ul>${getVaccinesList()}</ul>
-          `;
-          document.getElementById("confirmation-message").innerHTML = confirmationMessage;
-          document.getElementById("error-message").innerHTML = ""; // Clear any previous error messages
-          document.getElementById("schedule-section").style.display = "none"; // Hide schedule section after scheduling
-        })
-        .catch(error => {
-          // Display the error message
-          document.getElementById("error-message").innerHTML = error.message;
-          document.getElementById("confirmation-message").innerHTML = ""; // Clear any previous success messages
-        });
-      }
-    }
-
-    // Function to get the vaccines list for confirmation message
-    function getVaccinesList() {
-      const ageGroup = document.getElementById("age-group").value;
-      let vaccines = [];
-
-      if (ageGroup === "0-18") {
-        vaccines = ["Hepatitis B", "DTP (Diphtheria, Tetanus, Pertussis)", "Polio", "MMR (Measles, Mumps, Rubella)"];
-      } else if (ageGroup === "19-50") {
-        vaccines = ["Flu Vaccine", "COVID-19 Vaccine", "Tetanus"];
-      } else if (ageGroup === "51-65") {
-        vaccines = ["Flu Vaccine", "Pneumococcal Vaccine", "COVID-19 Booster"];
-      } else if (ageGroup === "66+") {
-        vaccines = ["Flu Vaccine", "Pneumococcal Vaccine", "COVID-19 Booster", "Shingles Vaccine"];
-      }
-
-      return vaccines.map(vaccine => `<li>${vaccine}</li>`).join('');
-    }
-  </script>
+    slotSelect.value = '';
+  }
+</script>
 
 </body>
 </html>
