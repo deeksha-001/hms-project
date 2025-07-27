@@ -410,6 +410,12 @@
         }
       };
     };
+    fetch('/api/debug-session', {
+  credentials: 'include'
+})
+.then(res => res.json())
+.then(console.log)
+
   </script>
 </body>
 </html>
