@@ -163,7 +163,10 @@
       // Update min date and disable unavailable days
       const inputDate = document.getElementById('date');
       inputDate.value = '';
-      inputDate.oninput = () => validateDoctorAvailability(inputDate.value, doc.availability);
+      inputDate.addEventListener('change', () => {
+  validateDoctorAvailability(inputDate.value, doc.availability);
+});
+
     });
 
     updateAvailableSlots();
