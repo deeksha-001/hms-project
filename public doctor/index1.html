@@ -178,9 +178,11 @@
 
     const availableDays = parseAvailability(availability); // [1, 2, 3, 4, 5]
     if (!availableDays.includes(day)) {
-      alert('This doctor is not available on the selected day.');
-      document.getElementById('date').value = '';
-    }
+  setTimeout(() => {
+    alert('This doctor is not available on the selected day.');
+  }, 100); // slight delay to let native date picker close
+}
+
   }
 
   function parseAvailability(avail) {
