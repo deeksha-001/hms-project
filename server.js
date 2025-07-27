@@ -33,7 +33,7 @@ app.use(session({
   secret: 'supersecretkey',
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: true,
+  cookie: { secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax'
      }
 }));
