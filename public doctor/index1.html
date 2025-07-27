@@ -117,22 +117,18 @@
 
   <div class="message" id="message"></div>
 
-  <script>
+ <script>
   const weekdayMap = {
-    'Mon': 1,
-    'Tue': 2,
-    'Wed': 3,
-    'Thu': 4,
-    'Fri': 5,
-    'Sat': 6,
-    'Sun': 0
+    'Mon': 1, 'Tue': 2, 'Wed': 3,
+    'Thu': 4, 'Fri': 5, 'Sat': 6, 'Sun': 0
   };
 
   let doctorMap = {};
 
   document.addEventListener('DOMContentLoaded', async () => {
+    const dateInput = document.getElementById('date');
     const today = new Date().toISOString().split('T')[0];
-    document.getElementById('date').min = today;
+    dateInput.setAttribute('min', today);
 
     const res = await fetch('/api/doctors');
     const doctors = await res.json();
@@ -142,7 +138,7 @@
     doctors.forEach(d => {
       const option = document.createElement('option');
       option.value = d.id;
-      option.textContent = `${d.name}`;
+      option.textContent = d.name;
       doctorMap[d.id] = d;
       select.appendChild(option);
     });
@@ -159,30 +155,34 @@
         <strong>Languages:</strong> ${doc.languages}
       `;
       doctorDetailsDiv.style.display = 'block';
+      dateInput.value = '';
 
-      // Update min date and disable unavailable days
-      const inputDate = document.getElementById('date');
-      inputDate.value = '';
-      inputDate.addEventListener('change', () => {
-  validateDoctorAvailability(inputDate.value, doc.availability);
-});
-
+      dateInput.onchange = () => validateDoctorAvailability(dateInput.value, doc.availability);
     });
 
-    updateAvailableSlots();
+    dateInput.addEventListener('change', updateAvailableSlots);
   });
 
   function validateDoctorAvailability(dateStr, availability) {
-    const date = new Date(dateStr);
-    const day = date.getDay(); // 0 (Sun) – 6 (Sat)
+    const inputDate = document.getElementById('date');
+    const selected = new Date(dateStr);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    const availableDays = parseAvailability(availability); // [1, 2, 3, 4, 5]
-    if (!availableDays.includes(day)) {
-  setTimeout(() => {
-    alert('This doctor is not available on the selected day.');
-  }, 100); // slight delay to let native date picker close
-}
+    if (selected < today) {
+      alert("You can't select a past date.");
+      inputDate.value = '';
+      return;
+    }
 
+    const availableDays = parseAvailability(availability);
+    if (!availableDays.includes(selected.getDay())) {
+      alert('This doctor is not available on the selected day.');
+      inputDate.value = '';
+      return;
+    }
+
+    updateAvailableSlots(); // Valid date, update slots
   }
 
   function parseAvailability(avail) {
@@ -195,13 +195,11 @@
         const [start, end] = trimmed.split('-').map(s => s.trim().slice(0, 3));
         let startIdx = weekdayMap[start];
         let endIdx = weekdayMap[end];
-        if (startIdx !== undefined && endIdx !== undefined) {
-          if (startIdx <= endIdx) {
-            for (let i = startIdx; i <= endIdx; i++) days.push(i);
-          } else {
-            for (let i = startIdx; i <= 6; i++) days.push(i);
-            for (let i = 0; i <= endIdx; i++) days.push(i);
-          }
+        if (startIdx <= endIdx) {
+          for (let i = startIdx; i <= endIdx; i++) days.push(i);
+        } else {
+          for (let i = startIdx; i <= 6; i++) days.push(i);
+          for (let i = 0; i <= endIdx; i++) days.push(i);
         }
       } else {
         const dayIdx = weekdayMap[trimmed.slice(0, 3)];
@@ -212,12 +210,10 @@
     return days;
   }
 
-  document.getElementById('date').addEventListener('change', updateAvailableSlots);
-
   function updateAvailableSlots() {
     const selectedDate = document.getElementById('date').value;
     const slotSelect = document.getElementById('time');
-    const allOptions = Array.from(slotSelect.options).slice(1);
+    const allOptions = Array.from(slotSelect.options).slice(1); // Skip "Select Slot"
 
     const now = new Date();
     const selected = new Date(selectedDate);
