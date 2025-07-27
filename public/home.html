@@ -327,7 +327,10 @@
 
     async function checkSessionAndToggleUI() {
       try {
-        const res = await fetch('/api/check-session');
+        const res = await fetch('/api/check-session', {
+  credentials: 'include' // ✅ Must send session cookie
+});
+
         const data = await res.json();
 
         const loginBtn = document.getElementById('loginBtn');
@@ -380,10 +383,12 @@
         const body = Object.fromEntries(form.entries());
 
         const res = await fetch('/api/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body)
-        });
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  credentials: 'include', // ✅ CRUCIAL LINE
+  body: JSON.stringify(body)
+});
+
 
         const data = await res.json();
         const msg = document.getElementById('authMsg');

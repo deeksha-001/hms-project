@@ -27,7 +27,10 @@ db.connect(err => {
 });
 
 // ===== MIDDLEWARE =====
-app.use(cors());
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
 app.use(express.json());
 app.use(session({
   secret: 'supersecretkey',
@@ -53,6 +56,7 @@ app.get('/admin/dashboard', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin', 'admin.html'));
   } else {
     res.status(403).send('Unauthorized access');
+
   }
 });
 app.get('/logout', (req, res) => {
